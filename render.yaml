@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: phishing-awareness
+    env: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "./start.sh"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.18
