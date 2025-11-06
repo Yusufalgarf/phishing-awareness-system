@@ -2444,6 +2444,6 @@ if __name__ == '__main__':
 
     Timer(2, open_browser).start()
 
-    # تشغيل الخادم على جميع الواجهات للوصول الخارجي
- port = int(os.environ.get('PORT', 10000))  # Render uses 10000 by default
-app.run(host='0.0.0.0', port=port, debug=False)
+    port = int(os.environ.get('PORT', 10000))
+    print(f"🚀 Starting server on port {port}")
+    app.run(host='0.0.0.0', port=port, debug=False)
