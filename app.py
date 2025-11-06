@@ -1409,7 +1409,7 @@ def simulate(campaign_id):
             </div>
             
             <div style="margin-top: 20px; font-size: 14px; color: #7f8c8d;">
-                <p>هذا النظام جزء من برنامج التوعية الأمنية - لحماية مجتمعنا من الهجمات الإلكترونية</p>
+                <p></p>
             </div>
         </div>
 
