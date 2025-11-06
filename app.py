@@ -898,8 +898,7 @@ def training():
             </div>
             
             <div class="nav">
-                <a href="/">الرئيسية</a>
-              
+               
                 <a href="/training" style="background: #2c3e50; border-radius: 5px;">التدريب</a>
             </div>
 
@@ -1211,13 +1210,14 @@ def training():
 
 @app.route('/simulate/<int:campaign_id>')
 def simulate(campaign_id):
+    """صفحة المحاكاة المعدلة - تظهر رسالة توعية مباشرة"""
     return f'''
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>تسجيل الدخول - نظام الجامعة</title>
+        <title>انتبه! لقد وقعت في الفخ</title>
         <style>
             * {{
                 margin: 0;
@@ -1227,7 +1227,7 @@ def simulate(campaign_id):
             }}
             
             body {{
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
                 min-height: 100vh;
                 display: flex;
                 align-items: center;
@@ -1235,220 +1235,210 @@ def simulate(campaign_id):
                 padding: 20px;
             }}
             
-            .login-container {{
+            .alert-container {{
                 background: white;
                 padding: 40px;
-                border-radius: 15px;
-                box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+                border-radius: 20px;
+                box-shadow: 0 20px 40px rgba(0,0,0,0.2);
                 width: 100%;
-                max-width: 450px;
-            }}
-            
-            .university-header {{
+                max-width: 700px;
                 text-align: center;
-                margin-bottom: 30px;
             }}
             
-            .university-logo {{
-                font-size: 2.5em;
-                margin-bottom: 10px;
-                color: #2c3e50;
-            }}
-            
-            .university-header h1 {{
-                color: #2c3e50;
-                margin-bottom: 5px;
-                font-size: 1.8em;
-            }}
-            
-            .university-header p {{
-                color: #7f8c8d;
-                font-size: 1.1em;
-            }}
-            
-            .login-form {{
-                margin-top: 30px;
-            }}
-            
-            .form-group {{
+            .warning-icon {{
+                font-size: 5em;
                 margin-bottom: 20px;
+                color: #e74c3c;
+                animation: bounce 2s infinite;
             }}
             
-            .form-group label {{
-                display: block;
-                margin-bottom: 8px;
-                color: #2c3e50;
-                font-weight: 600;
+            @keyframes bounce {{
+                0%, 20%, 50%, 80%, 100% {{ transform: translateY(0); }}
+                40% {{ transform: translateY(-20px); }}
+                60% {{ transform: translateY(-10px); }}
             }}
             
-            .form-group input {{
-                width: 100%;
-                padding: 15px;
-                border: 2px solid #e0e0e0;
-                border-radius: 8px;
-                font-size: 16px;
-                transition: border-color 0.3s;
+            h1 {{
+                color: #c0392b;
+                margin-bottom: 20px;
+                font-size: 2.5em;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
             }}
             
-            .form-group input:focus {{
-                outline: none;
-                border-color: #3498db;
+            .alert-message {{
+                background: #fff3cd;
+                border: 3px solid #ffeaa7;
+                border-radius: 15px;
+                padding: 25px;
+                margin: 25px 0;
+                text-align: right;
             }}
             
-            .login-btn {{
+            .guidance-section {{
+                background: #d4edda;
+                border: 3px solid #c3e6cb;
+                border-radius: 15px;
+                padding: 25px;
+                margin: 20px 0;
+                text-align: right;
+            }}
+            
+            .awareness-points {{
+                background: #d1ecf1;
+                border: 3px solid #bee5eb;
+                border-radius: 15px;
+                padding: 25px;
+                margin: 20px 0;
+                text-align: right;
+            }}
+            
+            .btn {{
+                display: inline-block;
                 background: #3498db;
                 color: white;
-                padding: 15px;
-                border: none;
+                padding: 15px 30px;
+                text-decoration: none;
                 border-radius: 8px;
-                width: 100%;
                 font-size: 16px;
                 font-weight: 600;
-                cursor: pointer;
-                transition: background 0.3s;
-            }}
-            
-            .login-btn:hover {{
-                background: #2980b9;
-            }}
-            
-            .form-footer {{
-                text-align: center;
-                margin-top: 20px;
-                color: #7f8c8d;
-            }}
-            
-            .form-footer a {{
-                color: #3498db;
-                text-decoration: none;
-            }}
-            
-            .security-notice {{
-                background: #f8f9fa;
-                padding: 15px;
-                border-radius: 8px;
-                margin-top: 20px;
-                text-align: center;
-                border-left: 4px solid #3498db;
-            }}
-            
-            .training-alert {{
-                display: none;
-                background: #fff3cd;
-                border: 1px solid #ffeaa7;
-                color: #856404;
-                padding: 20px;
-                border-radius: 8px;
-                margin-top: 20px;
-                text-align: center;
-                animation: fadeIn 0.5s;
-            }}
-            
-            @keyframes fadeIn {{
-                from {{ opacity: 0; }}
-                to {{ opacity: 1; }}
-            }}
-            
-            .alert-btn {{
-                background: #28a745;
-                color: white;
-                padding: 10px 20px;
+                margin: 10px;
+                transition: all 0.3s;
                 border: none;
-                border-radius: 5px;
                 cursor: pointer;
-                margin-top: 10px;
+            }}
+            
+            .btn:hover {{
+                background: #2980b9;
+                transform: translateY(-2px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            }}
+            
+            .btn-success {{
+                background: #27ae60;
+            }}
+            
+            .btn-success:hover {{
+                background: #219a52;
+            }}
+            
+            ul {{
+                text-align: right;
+                margin-right: 20px;
+                list-style-type: none;
+            }}
+            
+            li {{
+                padding: 8px 0;
+                border-bottom: 1px solid rgba(0,0,0,0.1);
                 font-size: 16px;
             }}
             
-            .alert-btn:hover {{
-                background: #219a52;
+            .points-grid {{
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 15px;
+                margin-top: 15px;
+            }}
+            
+            .point-item {{
+                background: white;
+                padding: 15px;
+                border-radius: 8px;
+                border-left: 4px solid #3498db;
+                text-align: center;
+            }}
+            
+            @media (max-width: 768px) {{
+                .points-grid {{
+                    grid-template-columns: 1fr;
+                }}
+                
+                h1 {{
+                    font-size: 2em;
+                }}
             }}
         </style>
     </head>
     <body>
-        <div class="login-container">
-            <div class="university-header">
-                <div class="university-logo">🎓</div>
-                <h1>جامعة التكنولوجيا</h1>
-                <p>نظام إدارة المعلومات الموحد</p>
+        <div class="alert-container">
+            <div class="warning-icon">🎣</div>
+            <h1>انتبه! لقد وقعت في الفخ</h1>
+            
+            <div class="alert-message">
+                <h3>🚨 هذا كان هجوم تصيد محتمل!</h3>
+                <p>في الواقع، لو كان هذا هجوم حقيقي، كانت معلوماتك الشخصية قد سُرقت!</p>
+                <p><strong>أنت الآن ضحية محاكاة لهجوم التصيد الإلكتروني</strong></p>
             </div>
             
-            <div class="security-notice">
-                <strong>🔒 تنبيه أمني:</strong> يرجى تسجيل الدخول باستخدام بياناتك الجامعية
+            <div class="guidance-section">
+                <h3>🛡️ توجيهات للحماية:</h3>
+                <ul>
+                    <li>❌ <strong>لا تضغط</strong> على روابط في رسائل غير موثوقة</li>
+                    <li>🔍 <strong>تحقق دائماً</strong> من عنوان الموقع في المتصفح</li>
+                    <li>📧 <strong>لا تدخل</strong> بياناتك الشخصية في مواقع غير معروفة</li>
+                    <li>📞 <strong>اتصل بالدعم الفني</strong> للتأكد من صحة أي طلب</li>
+                    <li>🔒 <strong>استخدم المصادقة الثنائية</strong> لحماية حساباتك</li>
+                </ul>
             </div>
             
-            <form class="login-form" id="loginForm">
-                <div class="form-group">
-                    <label for="username">اسم المستخدم:</label>
-                    <input type="text" id="username" placeholder="أدخل اسم المستخدم الجامعي" required>
+            <div class="awareness-points">
+                <h3>💡 كريز/نقاط توعوية:</h3>
+                <div class="points-grid">
+                    <div class="point-item">
+                        <h4>✅ تعلمت</h4>
+                        <p>كيفية التعرف على التصيد</p>
+                    </div>
+                    <div class="point-item">
+                        <h4>🎯 أصبحت</h4>
+                        <p>أكثر وعياً بالأمان الإلكتروني</p>
+                    </div>
+                    <div class="point-item">
+                        <h4>🛡️ تعرفت</h4>
+                        <p>على طرق الحماية الأساسية</p>
+                    </div>
+                    <div class="point-item">
+                        <h4>🚨 عرفت</h4>
+                        <p>مخاطر مشاركة المعلومات</p>
+                    </div>
                 </div>
-                
-                <div class="form-group">
-                    <label for="password">كلمة المرور:</label>
-                    <input type="password" id="password" placeholder="أدخل كلمة المرور" required>
-                </div>
-                
-                <button type="submit" class="login-btn">تسجيل الدخول</button>
-            </form>
-            
-            <div class="form-footer">
-                <a href="#">نسيت كلمة المرور؟</a> | 
-                <a href="#">مساعدة</a>
             </div>
             
-            <div class="training-alert" id="trainingAlert">
-                <h3>🎯 تدريب على التوعية الأمنية</h3>
-                <p>لقد قمت للتو بالتفاعل مع صفحة محاكاة لهجوم التصيد!</p>
-                <p>في الواقع، كان هذا يمكن أن يكون هجوماً حقيقياً لسرقة معلوماتك.</p>
-                <button class="alert-btn" onclick="redirectToAwareness()">تعلم كيفية الحماية</button>
+            <div style="margin-top: 30px;">
+                <a href="/awareness/{campaign_id}" class="btn btn-success">📚 تعلم المزيد عن الحماية</a>
+                <a href="/training" class="btn">🎓 الذهاب للتدريب الكامل</a>
+            </div>
+            
+            <div style="margin-top: 20px; font-size: 14px; color: #7f8c8d;">
+                <p>هذا النظام جزء من برنامج التوعية الأمنية - لحماية مجتمعنا من الهجمات الإلكترونية</p>
             </div>
         </div>
 
         <script>
-            const urlParams = new URLSearchParams(window.location.search);
-            const campaignId = {campaign_id};
-            const userId = urlParams.get('user') || '1';
+            // تسجيل التفاعل تلقائياً
+            fetch('/api/record-interaction', {{
+                method: 'POST',
+                headers: {{
+                    'Content-Type': 'application/json',
+                }},
+                body: JSON.stringify({{
+                    campaign_id: {campaign_id},
+                    interaction_type: 'phishing_alert_view',
+                    user_id: 1,
+                    response_time: 2
+                }})
+            }}).catch(error => console.error('Error recording interaction:', error));
             
-            document.getElementById('loginForm').addEventListener('submit', function(e) {{
-                e.preventDefault();
+            // إضافة تأثير عند التحميل
+            document.addEventListener('DOMContentLoaded', function() {{
+                const container = document.querySelector('.alert-container');
+                container.style.opacity = '0';
+                container.style.transform = 'translateY(50px)';
                 
-                const username = document.getElementById('username').value;
-                const password = document.getElementById('password').value;
-                
-                // تسجيل محاولة إدخال البيانات
-                recordInteraction('data_entry', username, password);
-                
-                // إظهار رسالة التدريب بعد 2 ثانية
                 setTimeout(() => {{
-                    document.getElementById('trainingAlert').style.display = 'block';
-                }}, 2000);
-            }});
-            
-            function recordInteraction(type, username = '', password = '') {{
-                const data = {{
-                    user_id: userId,
-                    campaign_id: campaignId,
-                    interaction_type: type,
-                    data_entered: username || password ? `username: ${{username}}, password: ${{password}}` : null,
-                    response_time: Math.floor(Math.random() * 10) + 1
-                }};
-                
-                fetch('/api/record-interaction', {{
-                    method: 'POST',
-                    headers: {{
-                        'Content-Type': 'application/json',
-                    }},
-                    body: JSON.stringify(data)
-                }}).catch(error => console.error('Error recording interaction:', error));
-            }}
-            
-            function redirectToAwareness() {{
-                window.location.href = `/awareness/${{campaignId}}?user=${{userId}}&type=data_entry`;
-            }}
-            
-            // تسجيل النقر عند تحميل الصفحة
-            window.addEventListener('load', function() {{
-                recordInteraction('page_view');
+                    container.style.transition = 'all 0.8s ease';
+                    container.style.opacity = '1';
+                    container.style.transform = 'translateY(0)';
+                }}, 100);
             }});
         </script>
     </body>
@@ -1686,7 +1676,7 @@ def awareness(campaign_id):
                 
                 <div class="action-buttons">
                     <a href="/training" class="btn btn-success">الذهاب إلى التدريب الكامل</a>
-                   
+                    
                 </div>
             </div>
         </div>
@@ -2435,15 +2425,18 @@ if __name__ == '__main__':
     except:
         local_ip = "localhost"
     
-    print("🎯 نظام التوعية بالتصيد - الإصدار الكامل مع الوصول الخارجي")
+    print("🎯 نظام التوعية بالتصيد - الإصدار المحدث")
     print("📍 يعمل على: http://localhost:5000")
     print("📍 للوصول من أجهزة أخرى: http://{}:5000".format(local_ip))
     print("📊 لوحة التحكم: http://localhost:5000/dashboard")
     print("🎓 التدريب: http://localhost:5000/training")
-    print("🌐 للوصول الخارجي: استخدم ngrok أو الرابط أعلاه")
+    print("🎣 محاكاة التصيد: استخدم لوحة التحكم لاختبار الحملات")
     print("=" * 50)
-    print("💡 لاستخدام ngrok: نزل ngrok وشغل 'ngrok http 5000'")
-    print("💡 ثم استخدم الرابط الذي يظهر في ngrok")
+    print("🆕 المميزات الجديدة:")
+    print("✅ رسالة توعية مباشرة 'لقد وقعت في الفخ'")
+    print("✅ توجيهات حماية واضحة")
+    print("✅ نقاط توعوية مبسطة")
+    print("✅ واجهة مستخدم محسنة")
 
     # فتح المتصفح تلقائياً
     def open_browser():
