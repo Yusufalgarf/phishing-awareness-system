@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify
 import sqlite3
 import os
 from datetime import datetime, timedelta
@@ -7,8 +7,6 @@ from threading import Timer
 import uuid
 import socket
 import requests
-import csv
-import io
 
 app = Flask(__name__)
 app.config['DATABASE'] = 'phishing_system.db'
@@ -289,7 +287,6 @@ def dashboard():
             .btn-primary { background: #3498db; color: white; }
             .btn-primary:hover { background: #2980b9; }
             .btn-secondary { background: #95a5a6; color: white; }
-            .btn-secondary:hover { background: #7f8c8d; }
             .form { background: white; padding: 2rem; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
             .form-group { margin-bottom: 1.5rem; }
             .form-group label { display: block; margin-bottom: 0.5rem; color: #2c3e50; font-weight: bold; }
@@ -313,19 +310,6 @@ def dashboard():
             .campaign-meta { display: flex; gap: 1rem; margin: 1rem 0; font-size: 0.9rem; color: #7f8c8d; }
             .campaign-actions { display: flex; gap: 0.5rem; }
             .campaign-actions .btn { padding: 0.5rem 1rem; font-size: 0.9rem; }
-            .tab-container { margin-bottom: 2rem; }
-            .tab-buttons { display: flex; background: #f8f9fa; border-radius: 10px; padding: 0.5rem; margin-bottom: 1rem; }
-            .tab-btn { padding: 0.75rem 1.5rem; border: none; background: none; cursor: pointer; border-radius: 8px; transition: all 0.3s; font-weight: 500; }
-            .tab-btn.active { background: #3498db; color: white; }
-            .tab-content { display: none; }
-            .tab-content.active { display: block; }
-            .filter-bar { background: #f8f9fa; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
-            .filter-select { padding: 0.5rem; border: 1px solid #e0e0e0; border-radius: 5px; background: white; }
-            .status-badge { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
-            .status-badge.click { background: #e74c3c; color: white; }
-            .status-badge.awareness { background: #27ae60; color: white; }
-            .status-badge.report { background: #3498db; color: white; }
-            .status-badge.ignore { background: #95a5a6; color: white; }
         </style>
     </head>
     <body>
@@ -366,303 +350,199 @@ def dashboard():
                 </div>
             </section>
 
-            <!-- نظام التبويب الجديد -->
+            <!-- إدارة المستخدمين -->
             <section class="dashboard-section">
-                <div class="tab-container">
-                    <div class="tab-buttons">
-                        <button class="tab-btn active" onclick="openTab('usersTab')">👥 إدارة المستخدمين</button>
-                        <button class="tab-btn" onclick="openTab('campaignsTab')">📧 إدارة الحملات</button>
-                        <button class="tab-btn" onclick="openTab('accessTab')">🌐 الوصول الخارجي</button>
-                        <button class="tab-btn" onclick="openTab('visitorsTab')">📊 متابعة الزوار</button>
+                <div class="section-header">
+                    <h3>👥 إدارة المستخدمين</h3>
+                    <button class="btn btn-primary" onclick="showAddUserForm()">إضافة مستخدم</button>
+                </div>
+
+                <div class="section-content">
+                    <div class="form-container" id="addUserForm" style="display: none;">
+                        <form id="userForm" class="form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="userEmail">البريد الإلكتروني *</label>
+                                    <input type="email" id="userEmail" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="userName">الاسم</label>
+                                    <input type="text" id="userName">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="userDepartment">القسم/الكلية</label>
+                                    <input type="text" id="userDepartment">
+                                </div>
+                                <div class="form-group">
+                                    <label for="userType">نوع المستخدم</label>
+                                    <select id="userType">
+                                        <option value="student">طالب</option>
+                                        <option value="employee">موظف</option>
+                                        <option value="admin">مدير</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">إضافة المستخدم</button>
+                                <button type="button" class="btn btn-secondary" onclick="hideAddUserForm()">إلغاء</button>
+                            </div>
+                        </form>
                     </div>
 
-                    <!-- تبويب متابعة الزوار الجديد -->
-                    <div id="visitorsTab" class="tab-content active">
-                        <div class="section-header">
-                            <h3>📊 متابعة الزوار والتفاعلات</h3>
-                            <div>
-                                <select class="filter-select" id="campaignFilter" onchange="loadVisitors()">
-                                    <option value="">جميع الحملات</option>
-                                </select>
-                                <select class="filter-select" id="typeFilter" onchange="loadVisitors()">
-                                    <option value="">جميع الأنواع</option>
-                                    <option value="click">نقر على الرابط</option>
-                                    <option value="awareness_view">مشاهدة التوعية</option>
-                                    <option value="report">الإبلاغ</option>
-                                    <option value="ignore">تجاهل</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="filter-bar">
-                            <div>
-                                <label>من:</label>
-                                <input type="date" id="dateFrom" class="filter-select" onchange="loadVisitors()">
-                            </div>
-                            <div>
-                                <label>إلى:</label>
-                                <input type="date" id="dateTo" class="filter-select" onchange="loadVisitors()">
-                            </div>
-                            <button class="btn btn-secondary" onclick="exportVisitors()">📥 تصدير البيانات</button>
-                        </div>
-
-                        <div class="table-container">
-                            <table class="data-table">
-                                <thead>
-                                    <tr>
-                                        <th>المستخدم</th>
-                                        <th>البريد الإلكتروني</th>
-                                        <th>الحملة</th>
-                                        <th>نوع التفاعل</th>
-                                        <th>وقت الاستجابة</th>
-                                        <th>عنوان IP</th>
-                                        <th>التاريخ</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="visitorsTableBody">
-                                    <!-- سيتم ملؤها بالبيانات -->
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div style="margin-top: 1rem; text-align: center;">
-                            <button class="btn btn-secondary" onclick="loadMoreVisitors()" id="loadMoreBtn">تحميل المزيد</button>
-                        </div>
-                    </div>
-
-                    <!-- تبويب إدارة المستخدمين -->
-                    <div id="usersTab" class="tab-content">
-                        <div class="section-header">
-                            <h3>👥 إدارة المستخدمين</h3>
-                            <button class="btn btn-primary" onclick="showAddUserForm()">إضافة مستخدم</button>
-                        </div>
-
-                        <div class="section-content">
-                            <div class="form-container" id="addUserForm" style="display: none;">
-                                <form id="userForm" class="form">
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label for="userEmail">البريد الإلكتروني *</label>
-                                            <input type="email" id="userEmail" required>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="userName">الاسم</label>
-                                            <input type="text" id="userName">
-                                        </div>
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label for="userDepartment">القسم/الكلية</label>
-                                            <input type="text" id="userDepartment">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="userType">نوع المستخدم</label>
-                                            <select id="userType">
-                                                <option value="student">طالب</option>
-                                                <option value="employee">موظف</option>
-                                                <option value="admin">مدير</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="form-actions">
-                                        <button type="submit" class="btn btn-primary">إضافة المستخدم</button>
-                                        <button type="button" class="btn btn-secondary" onclick="hideAddUserForm()">إلغاء</button>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <div class="table-container">
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>البريد الإلكتروني</th>
-                                            <th>الاسم</th>
-                                            <th>القسم</th>
-                                            <th>النوع</th>
-                                            <th>تاريخ التسجيل</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="usersTableBody">
-                                        <!-- سيتم ملؤها بالبيانات -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- تبويب إدارة الحملات -->
-                    <div id="campaignsTab" class="tab-content">
-                        <div class="section-header">
-                            <h3>📧 إدارة الحملات التدريبية</h3>
-                            <button class="btn btn-primary" onclick="showAddCampaignForm()">إنشاء حملة</button>
-                        </div>
-
-                        <div class="section-content">
-                            <div class="form-container" id="addCampaignForm" style="display: none;">
-                                <form id="campaignForm" class="form">
-                                    <div class="form-group">
-                                        <label for="campaignName">اسم الحملة *</label>
-                                        <input type="text" id="campaignName" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="campaignDescription">وصف الحملة</label>
-                                        <textarea id="campaignDescription" rows="3"></textarea>
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label for="phishingType">نوع التصيد</label>
-                                            <select id="phishingType">
-                                                <option value="email">بريد إلكتروني</option>
-                                                <option value="sms">رسالة نصية</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="difficultyLevel">مستوى الصعوبة</label>
-                                            <select id="difficultyLevel">
-                                                <option value="easy">سهل</option>
-                                                <option value="medium">متوسط</option>
-                                                <option value="hard">صعب</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="emailSubject">موضوع البريد الإلكتروني *</label>
-                                        <input type="text" id="emailSubject" required>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="emailContent">محتويات البريد الإلكتروني *</label>
-                                        <textarea id="emailContent" rows="6" required></textarea>
-                                        <small>استخدم {tracking_url} كعنصر نائب لرابط التتبع</small>
-                                    </div>
-                                    <div class="form-actions">
-                                        <button type="submit" class="btn btn-primary">إنشاء الحملة</button>
-                                        <button type="button" class="btn btn-secondary" onclick="hideAddCampaignForm()">إلغاء</button>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <div class="campaigns-grid" id="campaignsGrid">
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>الاسم</th>
+                                    <th>القسم</th>
+                                    <th>النوع</th>
+                                    <th>تاريخ التسجيل</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
                                 <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- إدارة الحملات -->
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h3>📧 إدارة الحملات التدريبية</h3>
+                    <button class="btn btn-primary" onclick="showAddCampaignForm()">إنشاء حملة</button>
+                </div>
+
+                <div class="section-content">
+                    <div class="form-container" id="addCampaignForm" style="display: none;">
+                        <form id="campaignForm" class="form">
+                            <div class="form-group">
+                                <label for="campaignName">اسم الحملة *</label>
+                                <input type="text" id="campaignName" required>
                             </div>
+                            <div class="form-group">
+                                <label for="campaignDescription">وصف الحملة</label>
+                                <textarea id="campaignDescription" rows="3"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="phishingType">نوع التصيد</label>
+                                    <select id="phishingType">
+                                        <option value="email">بريد إلكتروني</option>
+                                        <option value="sms">رسالة نصية</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="difficultyLevel">مستوى الصعوبة</label>
+                                    <select id="difficultyLevel">
+                                        <option value="easy">سهل</option>
+                                        <option value="medium">متوسط</option>
+                                        <option value="hard">صعب</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="emailSubject">موضوع البريد الإلكتروني *</label>
+                                <input type="text" id="emailSubject" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="emailContent">محتويات البريد الإلكتروني *</label>
+                                <textarea id="emailContent" rows="6" required></textarea>
+                                <small>استخدم {tracking_url} كعنصر نائب لرابط التتبع</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">إنشاء الحملة</button>
+                                <button type="button" class="btn btn-secondary" onclick="hideAddCampaignForm()">إلغاء</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="campaigns-grid" id="campaignsGrid">
+                        <!-- سيتم ملؤها بالبيانات -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- قسم الوصول الخارجي الجديد -->
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h3>🌐 إدارة الوصول الخارجي</h3>
+                    <button class="btn btn-primary" onclick="showCreateAccessForm()">إنشاء رابط وصول</button>
+                </div>
+
+                <div class="section-content">
+                    <div class="form-container" id="createAccessForm" style="display: none;">
+                        <form id="accessForm" class="form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="accessUser">المستخدم (اختياري)</label>
+                                    <select id="accessUser">
+                                        <option value="">اختيار مستخدم</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="accessCampaign">الحملة (اختياري)</label>
+                                    <select id="accessCampaign">
+                                        <option value="">اختيار حملة</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="validDays">مدة الصلاحية (أيام)</label>
+                                    <input type="number" id="validDays" value="30" min="1" max="365">
+                                </div>
+                                <div class="form-group">
+                                    <label for="maxUses">الحد الأقصى للاستخدام</label>
+                                    <input type="number" id="maxUses" value="1" min="1" max="100">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">إنشاء الرابط</button>
+                                <button type="button" class="btn btn-secondary" onclick="hideCreateAccessForm()">إلغاء</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div id="accessResult" style="display: none;" class="form">
+                        <h4>✅ تم إنشاء رابط الوصول</h4>
+                        <div class="form-group">
+                            <label>رابط الوصول:</label>
+                            <input type="text" id="generatedLink" readonly style="background: #f8f9fa;">
+                            <button class="btn" onclick="copyLink()" style="margin-top: 10px;">نسخ الرابط</button>
+                        </div>
+                        <div class="form-group">
+                            <label>معلومات الرابط:</label>
+                            <div id="linkInfo" style="background: #f8f9fa; padding: 10px; border-radius: 5px;"></div>
                         </div>
                     </div>
 
-                    <!-- تبويب الوصول الخارجي -->
-                    <div id="accessTab" class="tab-content">
-                        <div class="section-header">
-                            <h3>🌐 إدارة الوصول الخارجي</h3>
-                            <button class="btn btn-primary" onclick="showCreateAccessForm()">إنشاء رابط وصول</button>
-                        </div>
-
-                        <div class="section-content">
-                            <div class="form-container" id="createAccessForm" style="display: none;">
-                                <form id="accessForm" class="form">
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label for="accessUser">المستخدم (اختياري)</label>
-                                            <select id="accessUser">
-                                                <option value="">اختيار مستخدم</option>
-                                            </select>
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="accessCampaign">الحملة (اختياري)</label>
-                                            <select id="accessCampaign">
-                                                <option value="">اختيار حملة</option>
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label for="validDays">مدة الصلاحية (أيام)</label>
-                                            <input type="number" id="validDays" value="30" min="1" max="365">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="maxUses">الحد الأقصى للاستخدام</label>
-                                            <input type="number" id="maxUses" value="1" min="1" max="100">
-                                        </div>
-                                    </div>
-                                    <div class="form-actions">
-                                        <button type="submit" class="btn btn-primary">إنشاء الرابط</button>
-                                        <button type="button" class="btn btn-secondary" onclick="hideCreateAccessForm()">إلغاء</button>
-                                    </div>
-                                </form>
-                            </div>
-
-                            <div id="accessResult" style="display: none;" class="form">
-                                <h4>✅ تم إنشاء رابط الوصول</h4>
-                                <div class="form-group">
-                                    <label>رابط الوصول:</label>
-                                    <input type="text" id="generatedLink" readonly style="background: #f8f9fa;">
-                                    <button class="btn" onclick="copyLink()" style="margin-top: 10px;">نسخ الرابط</button>
-                                </div>
-                                <div class="form-group">
-                                    <label>معلومات الرابط:</label>
-                                    <div id="linkInfo" style="background: #f8f9fa; padding: 10px; border-radius: 5px;"></div>
-                                </div>
-                            </div>
-
-                            <div class="table-container">
-                                <h4>روابط الوصول النشطة</h4>
-                                <table class="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>رمز الوصول</th>
-                                            <th>الحملة</th>
-                                            <th>تاريخ الانتهاء</th>
-                                            <th>عدد الاستخدامات</th>
-                                            <th>الحالة</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="accessTableBody">
-                                        <!-- سيتم ملؤها بالبيانات -->
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
+                    <div class="table-container">
+                        <h4>روابط الوصول النشطة</h4>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>رمز الوصول</th>
+                                    <th>الحملة</th>
+                                    <th>تاريخ الانتهاء</th>
+                                    <th>عدد الاستخدامات</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accessTableBody">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
         </main>
 
         <script>
-            // متغيرات التبويب
-            let currentTab = 'visitorsTab';
-            let visitorsPage = 1;
-            let hasMoreVisitors = true;
-
-            // دوال إدارة التبويب
-            function openTab(tabName) {
-                // إخفاء جميع المحتويات
-                document.querySelectorAll('.tab-content').forEach(tab => {
-                    tab.classList.remove('active');
-                });
-                
-                // إلغاء تنشيط جميع الأزرار
-                document.querySelectorAll('.tab-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                
-                // إظهار المحتوى المطلوب
-                document.getElementById(tabName).classList.add('active');
-                
-                // تنشيط الزر المطلوب
-                event.currentTarget.classList.add('active');
-                
-                currentTab = tabName;
-                
-                // تحميل البيانات عند التبديل
-                if (tabName === 'visitorsTab') {
-                    loadVisitors();
-                    loadCampaignsFilter();
-                } else if (tabName === 'usersTab') {
-                    loadUsers();
-                } else if (tabName === 'campaignsTab') {
-                    loadCampaigns();
-                } else if (tabName === 'accessTab') {
-                    loadAccessLinks();
-                }
-            }
-
             // دوال إدارة النماذج
             function showAddUserForm() {
                 document.getElementById('addUserForm').style.display = 'block';
@@ -767,28 +647,6 @@ def dashboard():
                     'hard': 'صعب'
                 };
                 return levels[level] || level;
-            }
-
-            function getInteractionTypeText(type) {
-                const types = {
-                    'click': 'نقر على الرابط',
-                    'awareness_view': 'مشاهدة التوعية',
-                    'report': 'الإبلاغ',
-                    'ignore': 'تجاهل',
-                    'phishing_alert_view': 'مشاهدة التنبيه'
-                };
-                return types[type] || type;
-            }
-
-            function getStatusBadge(type) {
-                const badges = {
-                    'click': 'status-badge click',
-                    'awareness_view': 'status-badge awareness',
-                    'report': 'status-badge report',
-                    'ignore': 'status-badge ignore',
-                    'phishing_alert_view': 'status-badge awareness'
-                };
-                return badges[type] || 'status-badge ignore';
             }
 
             // إرسال حملة
@@ -993,111 +851,11 @@ def dashboard():
                 }
             }
 
-            // دوال متابعة الزوار الجديدة
-            async function loadCampaignsFilter() {
-                try {
-                    const response = await fetch('/api/campaigns');
-                    const campaigns = await response.json();
-                    
-                    const campaignFilter = document.getElementById('campaignFilter');
-                    campaignFilter.innerHTML = '<option value="">جميع الحملات</option>';
-                    
-                    campaigns.forEach(campaign => {
-                        const option = document.createElement('option');
-                        option.value = campaign.id;
-                        option.textContent = campaign.name;
-                        campaignFilter.appendChild(option);
-                    });
-                } catch (error) {
-                    console.error('Error loading campaigns filter:', error);
-                }
-            }
-
-            async function loadVisitors(resetPage = true) {
-                if (resetPage) {
-                    visitorsPage = 1;
-                    hasMoreVisitors = true;
-                }
-
-                try {
-                    const campaignId = document.getElementById('campaignFilter').value;
-                    const interactionType = document.getElementById('typeFilter').value;
-                    const dateFrom = document.getElementById('dateFrom').value;
-                    const dateTo = document.getElementById('dateTo').value;
-
-                    let url = `/api/user-responses?page=${visitorsPage}`;
-                    if (campaignId) url += `&campaign_id=${campaignId}`;
-                    if (interactionType) url += `&interaction_type=${interactionType}`;
-                    if (dateFrom) url += `&date_from=${dateFrom}`;
-                    if (dateTo) url += `&date_to=${dateTo}`;
-
-                    const response = await fetch(url);
-                    const visitors = await response.json();
-
-                    const visitorsTable = document.getElementById('visitorsTableBody');
-                    
-                    if (resetPage) {
-                        visitorsTable.innerHTML = '';
-                    }
-
-                    if (visitors.length === 0) {
-                        if (visitorsPage === 1) {
-                            visitorsTable.innerHTML = '<tr><td colspan="7" style="text-align: center;">لا توجد بيانات</td></tr>';
-                        }
-                        hasMoreVisitors = false;
-                        document.getElementById('loadMoreBtn').style.display = 'none';
-                    } else {
-                        visitorsTable.innerHTML += visitors.map(visitor => `
-                            <tr>
-                                <td>${visitor.name || visitor.email || 'زائر خارجي'}</td>
-                                <td>${visitor.email || '-'}</td>
-                                <td>${visitor.campaign_name || 'تدريب عام'}</td>
-                                <td><span class="${getStatusBadge(visitor.interaction_type)}">${getInteractionTypeText(visitor.interaction_type)}</span></td>
-                                <td>${visitor.response_time ? visitor.response_time + ' ثانية' : '-'}</td>
-                                <td>${visitor.ip_address || '-'}</td>
-                                <td>${new Date(visitor.interaction_date).toLocaleString('ar-EG')}</td>
-                            </tr>
-                        `).join('');
-
-                        document.getElementById('loadMoreBtn').style.display = 'block';
-                    }
-                } catch (error) {
-                    console.error('Error loading visitors:', error);
-                }
-            }
-
-            async function loadMoreVisitors() {
-                visitorsPage++;
-                await loadVisitors(false);
-            }
-
-            function exportVisitors() {
-                const campaignId = document.getElementById('campaignFilter').value;
-                const interactionType = document.getElementById('typeFilter').value;
-                const dateFrom = document.getElementById('dateFrom').value;
-                const dateTo = document.getElementById('dateTo').value;
-
-                let url = `/api/export-visitors`;
-                let params = [];
-                if (campaignId) params.push(`campaign_id=${campaignId}`);
-                if (interactionType) params.push(`interaction_type=${interactionType}`);
-                if (dateFrom) params.push(`date_from=${dateFrom}`);
-                if (dateTo) params.push(`date_to=${dateTo}`);
-
-                if (params.length > 0) {
-                    url += '?' + params.join('&');
-                }
-
-                window.open(url, '_blank');
-            }
-
             // التحميل الأولي
             loadStats();
             loadUsers();
             loadCampaigns();
             loadAccessLinks();
-            loadVisitors();
-            loadCampaignsFilter();
         </script>
     </body>
     </html>
@@ -2542,118 +2300,18 @@ def record_interaction():
 def get_user_responses():
     """الحصول على تفاعلات المستخدمين"""
     conn = get_db_connection()
-    
-    page = request.args.get('page', 1, type=int)
-    campaign_id = request.args.get('campaign_id', type=int)
-    interaction_type = request.args.get('interaction_type')
-    date_from = request.args.get('date_from')
-    date_to = request.args.get('date_to')
-    
-    limit = 50
-    offset = (page - 1) * limit
-    
-    query = '''
-        SELECT ur.*, u.email, u.name, c.name as campaign_name 
+    responses = conn.execute('''
+        SELECT ur.*, u.email, c.name as campaign_name 
         FROM user_responses ur 
-        LEFT JOIN users u ON ur.user_id = u.id 
-        LEFT JOIN campaigns c ON ur.campaign_id = c.id 
-        WHERE 1=1
-    '''
-    params = []
-    
-    if campaign_id:
-        query += ' AND ur.campaign_id = ?'
-        params.append(campaign_id)
-    
-    if interaction_type:
-        query += ' AND ur.interaction_type = ?'
-        params.append(interaction_type)
-    
-    if date_from:
-        query += ' AND DATE(ur.interaction_date) >= ?'
-        params.append(date_from)
-    
-    if date_to:
-        query += ' AND DATE(ur.interaction_date) <= ?'
-        params.append(date_to)
-    
-    query += ' ORDER BY ur.interaction_date DESC LIMIT ? OFFSET ?'
-    params.extend([limit, offset])
-    
-    responses = conn.execute(query, params).fetchall()
+        JOIN users u ON ur.user_id = u.id 
+        JOIN campaigns c ON ur.campaign_id = c.id 
+        ORDER BY ur.interaction_date DESC 
+        LIMIT 50
+    ''').fetchall()
 
     result = [dict(response) for response in responses]
     conn.close()
     return jsonify(result)
-
-@app.route('/api/export-visitors')
-def export_visitors():
-    """تصدير بيانات الزوار إلى CSV"""
-    conn = get_db_connection()
-    
-    campaign_id = request.args.get('campaign_id', type=int)
-    interaction_type = request.args.get('interaction_type')
-    date_from = request.args.get('date_from')
-    date_to = request.args.get('date_to')
-    
-    query = '''
-        SELECT ur.*, u.email, u.name, c.name as campaign_name 
-        FROM user_responses ur 
-        LEFT JOIN users u ON ur.user_id = u.id 
-        LEFT JOIN campaigns c ON ur.campaign_id = c.id 
-        WHERE 1=1
-    '''
-    params = []
-    
-    if campaign_id:
-        query += ' AND ur.campaign_id = ?'
-        params.append(campaign_id)
-    
-    if interaction_type:
-        query += ' AND ur.interaction_type = ?'
-        params.append(interaction_type)
-    
-    if date_from:
-        query += ' AND DATE(ur.interaction_date) >= ?'
-        params.append(date_from)
-    
-    if date_to:
-        query += ' AND DATE(ur.interaction_date) <= ?'
-        params.append(date_to)
-    
-    query += ' ORDER BY ur.interaction_date DESC'
-    
-    responses = conn.execute(query, params).fetchall()
-    
-    # إنشاء CSV في الذاكرة
-    output = io.StringIO()
-    writer = csv.writer(output)
-    
-    # كتابة العنوان
-    writer.writerow(['المستخدم', 'البريد الإلكتروني', 'الحملة', 'نوع التفاعل', 'وقت الاستجابة', 'عنوان IP', 'التاريخ'])
-    
-    # كتابة البيانات
-    for response in responses:
-        writer.writerow([
-            response['name'] or response['email'] or 'زائر خارجي',
-            response['email'] or '-',
-            response['campaign_name'] or 'تدريب عام',
-            response['interaction_type'],
-            response['response_time'] or '-',
-            response['ip_address'] or '-',
-            response['interaction_date']
-        ])
-    
-    conn.close()
-    
-    # إرجاع الملف
-    output.seek(0)
-    return send_file(
-        io.BytesIO(output.getvalue().encode('utf-8')),
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name=f'visitors_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.csv'
-    )
 
 # ========== واجهات API للوصول الخارجي ==========
 
@@ -2768,23 +2426,21 @@ if __name__ == '__main__':
         local_ip = "localhost"
     
     print("🎯 نظام التوعية بالتصيد - الإصدار المحدث")
-    print("📍 يعمل على: http://localhost:10000")
-    print("📍 للوصول من أجهزة أخرى: http://{}:10000".format(local_ip))
-    print("📊 لوحة التحكم: http://localhost:10000/dashboard")
-    print("🎓 التدريب: http://localhost:10000/training")
+    print("📍 يعمل على: http://localhost:5000")
+    print("📍 للوصول من أجهزة أخرى: http://{}:5000".format(local_ip))
+    print("📊 لوحة التحكم: http://localhost:5000/dashboard")
+    print("🎓 التدريب: http://localhost:5000/training")
     print("🎣 محاكاة التصيد: استخدم لوحة التحكم لاختبار الحملات")
     print("=" * 50)
     print("🆕 المميزات الجديدة:")
-    print("✅ تبويب 'متابعة الزوار' الجديد")
-    print("✅ عرض جميع الأشخاص الذين دخلوا على الروابط")
-    print("✅ تفاصيل كاملة عن كل زيارة (IP، وقت الاستجابة، التاريخ)")
-    print("✅ نظام فلترة متقدم حسب الحملة ونوع التفاعل والتاريخ")
-    print("✅ إمكانية تصدير البيانات لتحليلها")
-    print("✅ واجهة مستخدم محسنة بنظام تبويب")
+    print("✅ رسالة توعية مباشرة 'لقد وقعت في الفخ'")
+    print("✅ توجيهات حماية واضحة")
+    print("✅ نقاط توعوية مبسطة")
+    print("✅ واجهة مستخدم محسنة")
 
     # فتح المتصفح تلقائياً
     def open_browser():
-        webbrowser.open('http://localhost:10000')
+        webbrowser.open('http://localhost:5000')
 
     Timer(2, open_browser).start()
 
