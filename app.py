@@ -84,6 +84,24 @@ def init_db():
         )
     ''')
 
+    # جدول جديد لتتبع زيارات الروابط
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS link_tracking (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            campaign_id INTEGER,
+            link_type TEXT, -- 'test_link' أو 'external_link'
+            access_code TEXT,
+            visitor_ip TEXT,
+            user_agent TEXT,
+            visit_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+            referrer TEXT,
+            country TEXT,
+            city TEXT,
+            device_type TEXT,
+            FOREIGN KEY (campaign_id) REFERENCES campaigns (id)
+        )
+    ''')
+
     try:
         c.execute("INSERT OR IGNORE INTO users (email, name, department, user_type) VALUES (?, ?, ?, ?)",
                   ('admin@university.edu', 'مدير النظام', 'IT', 'admin'))
@@ -310,6 +328,8 @@ def dashboard():
             .campaign-meta { display: flex; gap: 1rem; margin: 1rem 0; font-size: 0.9rem; color: #7f8c8d; }
             .campaign-actions { display: flex; gap: 0.5rem; }
             .campaign-actions .btn { padding: 0.5rem 1rem; font-size: 0.9rem; }
+            .copy-btn { background: #95a5a6; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 5px; }
+            .copy-btn:hover { background: #7f8c8d; }
         </style>
     </head>
     <body>
@@ -346,6 +366,88 @@ def dashboard():
                     <div class="stat-card">
                         <div class="stat-number" id="dashSuccessRate">0%</div>
                         <div class="stat-label">معدل النجاح</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- قسم تتبع الزيارات الجديد -->
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h3>📈 تتبع زيارات الروابط</h3>
+                    <button class="btn btn-primary" onclick="refreshLinkStats()">تحديث الإحصائيات</button>
+                </div>
+
+                <div class="section-content">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-number" id="totalVisits">0</div>
+                            <div class="stat-label">إجمالي الزيارات</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="uniqueVisitors">0</div>
+                            <div class="stat-label">زوار فريدون</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="todayVisits">0</div>
+                            <div class="stat-label">زيارات اليوم</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-number" id="conversionRate">0%</div>
+                            <div class="stat-label">معدل التحويل</div>
+                        </div>
+                    </div>
+
+                    <div class="form">
+                        <h4>🔗 إنشاء رابط تتبع جديد</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="trackingCampaign">الحملة</label>
+                                <select id="trackingCampaign">
+                                    <option value="">اختيار حملة</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="linkType">نوع الرابط</label>
+                                <select id="linkType">
+                                    <option value="test_link">رابط اختبار</option>
+                                    <option value="external_link">رابط خارجي</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-primary" onclick="generateTrackingLink()">إنشاء رابط التتبع</button>
+                        </div>
+                    </div>
+
+                    <div id="trackingLinkResult" style="display: none;" class="form">
+                        <h4>✅ تم إنشاء رابط التتبع</h4>
+                        <div class="form-group">
+                            <label>رابط التتبع:</label>
+                            <input type="text" id="generatedTrackingLink" readonly style="background: #f8f9fa; width: 100%; padding: 10px; border-radius: 5px;">
+                            <button class="copy-btn" onclick="copyTrackingLink()">نسخ</button>
+                        </div>
+                        <div class="form-group">
+                            <label>رمز التتبع:</label>
+                            <input type="text" id="trackingCode" readonly style="background: #f8f9fa; width: 100%; padding: 10px; border-radius: 5px;">
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <h4>آخر الزيارات</h4>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>الحملة</th>
+                                    <th>نوع الرابط</th>
+                                    <th>عنوان IP</th>
+                                    <th>نوع الجهاز</th>
+                                    <th>التاريخ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="visitsTableBody">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -467,7 +569,7 @@ def dashboard():
                 </div>
             </section>
 
-            <!-- قسم الوصول الخارجي الجديد -->
+            <!-- قسم الوصول الخارجي -->
             <section class="dashboard-section">
                 <div class="section-header">
                     <h3>🌐 إدارة الوصول الخارجي</h3>
@@ -630,10 +732,20 @@ def dashboard():
                             </div>
                             <div class="campaign-actions">
                                 <button class="btn btn-primary" onclick="sendCampaign(${campaign.id})">إرسال الحملة</button>
-                                <button class="btn btn-secondary" onclick="testCampaign(${campaign.id})">اختبار</button>
+                                <button class="btn btn-secondary" onclick="generateTestLink(${campaign.id})">إنشاء رابط اختبار</button>
                             </div>
                         </div>
                     `).join('');
+
+                    // ملء قائمة الحملات في قسم التتبع
+                    const trackingSelect = document.getElementById('trackingCampaign');
+                    trackingSelect.innerHTML = '<option value="">اختيار حملة</option>';
+                    campaigns.forEach(campaign => {
+                        const option = document.createElement('option');
+                        option.value = campaign.id;
+                        option.textContent = campaign.name;
+                        trackingSelect.appendChild(option);
+                    });
                 } catch (error) {
                     console.error('Error loading campaigns:', error);
                 }
@@ -669,9 +781,19 @@ def dashboard():
                 }
             }
 
-            // اختبار حملة
-            function testCampaign(campaignId) {
-                window.open(`/simulate/${campaignId}?user=1`, '_blank');
+            // إنشاء رابط اختبار
+            function generateTestLink(campaignId) {
+                const baseUrl = window.location.origin;
+                const testLink = `${baseUrl}/simulate/${campaignId}`;
+                
+                // عرض الرابط في قسم التتبع
+                document.getElementById('trackingLinkResult').style.display = 'block';
+                document.getElementById('generatedTrackingLink').value = testLink;
+                document.getElementById('trackingCode').value = `campaign_${campaignId}`;
+                
+                // نسخ الرابط تلقائياً
+                copyTrackingLink();
+                alert('✅ تم نسخ رابط الاختبار إلى الحافظة');
             }
 
             // إضافة مستخدم
@@ -851,11 +973,96 @@ def dashboard():
                 }
             }
 
+            // دوال تتبع الزيارات الجديدة
+            async function refreshLinkStats() {
+                try {
+                    const response = await fetch('/api/link-tracking/stats');
+                    const stats = await response.json();
+
+                    document.getElementById('totalVisits').textContent = stats.total_visits;
+                    document.getElementById('uniqueVisitors').textContent = stats.unique_visitors;
+                    document.getElementById('todayVisits').textContent = stats.today_visits;
+                    document.getElementById('conversionRate').textContent = stats.conversion_rate + '%';
+
+                    // تحميل آخر الزيارات
+                    const visitsResponse = await fetch('/api/link-tracking/visits');
+                    const visits = await visitsResponse.json();
+
+                    const visitsTable = document.getElementById('visitsTableBody');
+                    visitsTable.innerHTML = visits.map(visit => `
+                        <tr>
+                            <td>${visit.campaign_name || 'غير محدد'}</td>
+                            <td>${visit.link_type === 'test_link' ? 'رابط اختبار' : 'رابط خارجي'}</td>
+                            <td>${visit.visitor_ip}</td>
+                            <td>${visit.device_type || 'غير معروف'}</td>
+                            <td>${new Date(visit.visit_date).toLocaleString('ar-EG')}</td>
+                        </tr>
+                    `).join('');
+                } catch (error) {
+                    console.error('Error loading link stats:', error);
+                }
+            }
+
+            function generateTrackingLink() {
+                const campaignId = document.getElementById('trackingCampaign').value;
+                const linkType = document.getElementById('linkType').value;
+
+                if (!campaignId) {
+                    alert('يرجى اختيار حملة');
+                    return;
+                }
+
+                const baseUrl = window.location.origin;
+                let trackingLink = '';
+
+                if (linkType === 'test_link') {
+                    trackingLink = `${baseUrl}/simulate/${campaignId}`;
+                } else {
+                    // إنشاء رمز وصول خارجي
+                    fetch('/api/external/access', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            campaign_id: campaignId,
+                            valid_days: 30,
+                            max_uses: 100
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(result => {
+                        if (result.external_url) {
+                            document.getElementById('trackingLinkResult').style.display = 'block';
+                            document.getElementById('generatedTrackingLink').value = result.external_url;
+                            document.getElementById('trackingCode').value = result.access_code;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error generating external link:', error);
+                        alert('خطأ في إنشاء الرابط الخارجي');
+                    });
+                    return;
+                }
+
+                document.getElementById('trackingLinkResult').style.display = 'block';
+                document.getElementById('generatedTrackingLink').value = trackingLink;
+                document.getElementById('trackingCode').value = `campaign_${campaignId}`;
+            }
+
+            function copyTrackingLink() {
+                const linkInput = document.getElementById('generatedTrackingLink');
+                linkInput.select();
+                document.execCommand('copy');
+                alert('تم نسخ رابط التتبع إلى الحافظة');
+            }
+
             // التحميل الأولي
             loadStats();
             loadUsers();
             loadCampaigns();
             loadAccessLinks();
+            refreshLinkStats();
         </script>
     </body>
     </html>
@@ -1210,7 +1417,39 @@ def training():
 
 @app.route('/simulate/<int:campaign_id>')
 def simulate(campaign_id):
-    """صفحة المحاكاة المعدلة - تظهر رسالة توعية مباشرة"""
+    """صفحة المحاكاة مع تتبع الزيارات"""
+    # تسجيل الزيارة
+    conn = get_db_connection()
+    try:
+        # الحصول على معلومات الزائر
+        visitor_ip = request.remote_addr
+        user_agent = request.headers.get('User-Agent', '')
+        referrer = request.headers.get('Referer', '')
+        
+        # تحديد نوع الجهاز
+        device_type = 'جهاز غير معروف'
+        if 'Mobile' in user_agent:
+            device_type = 'هاتف محمول'
+        elif 'Tablet' in user_agent:
+            device_type = 'تابلت'
+        elif 'Windows' in user_agent:
+            device_type = 'كمبيوتر (Windows)'
+        elif 'Mac' in user_agent:
+            device_type = 'كمبيوتر (Mac)'
+        elif 'Linux' in user_agent:
+            device_type = 'كمبيوتر (Linux)'
+        
+        # تسجيل الزيارة
+        conn.execute(
+            'INSERT INTO link_tracking (campaign_id, link_type, visitor_ip, user_agent, referrer, device_type) VALUES (?, ?, ?, ?, ?, ?)',
+            (campaign_id, 'test_link', visitor_ip, user_agent, referrer, device_type)
+        )
+        conn.commit()
+    except Exception as e:
+        print(f"Error tracking visit: {e}")
+    finally:
+        conn.close()
+
     return f'''
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
@@ -1708,6 +1947,45 @@ def awareness(campaign_id):
 @app.route('/external/login/<access_code>')
 def external_login(access_code):
     """واجهة تسجيل الدخول للمستخدمين الخارجيين"""
+    # تسجيل الزيارة للرابط الخارجي
+    conn = get_db_connection()
+    try:
+        visitor_ip = request.remote_addr
+        user_agent = request.headers.get('User-Agent', '')
+        referrer = request.headers.get('Referer', '')
+        
+        # تحديد نوع الجهاز
+        device_type = 'جهاز غير معروف'
+        if 'Mobile' in user_agent:
+            device_type = 'هاتف محمول'
+        elif 'Tablet' in user_agent:
+            device_type = 'تابلت'
+        elif 'Windows' in user_agent:
+            device_type = 'كمبيوتر (Windows)'
+        elif 'Mac' in user_agent:
+            device_type = 'كمبيوتر (Mac)'
+        elif 'Linux' in user_agent:
+            device_type = 'كمبيوتر (Linux)'
+        
+        # الحصول على campaign_id من الرمز
+        access = conn.execute(
+            'SELECT campaign_id FROM external_access WHERE access_code = ?', 
+            (access_code,)
+        ).fetchone()
+        
+        campaign_id = access['campaign_id'] if access else None
+        
+        # تسجيل الزيارة
+        conn.execute(
+            'INSERT INTO link_tracking (campaign_id, link_type, access_code, visitor_ip, user_agent, referrer, device_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            (campaign_id, 'external_link', access_code, visitor_ip, user_agent, referrer, device_type)
+        )
+        conn.commit()
+    except Exception as e:
+        print(f"Error tracking external visit: {e}")
+    finally:
+        conn.close()
+
     return f'''
     <!DOCTYPE html>
     <html lang="ar" dir="rtl">
@@ -2415,6 +2693,69 @@ def get_external_access_list():
     conn.close()
     return jsonify(result)
 
+# ========== واجهات API لتتبع الزيارات ==========
+
+@app.route('/api/link-tracking/stats')
+def get_link_tracking_stats():
+    """الحصول على إحصائيات تتبع الزيارات"""
+    conn = get_db_connection()
+    
+    # إجمالي الزيارات
+    total_visits = conn.execute('SELECT COUNT(*) FROM link_tracking').fetchone()[0]
+    
+    # الزوار الفريدون (بناءً على IP)
+    unique_visitors = conn.execute('SELECT COUNT(DISTINCT visitor_ip) FROM link_tracking').fetchone()[0]
+    
+    # زيارات اليوم
+    today = datetime.now().strftime('%Y-%m-%d')
+    today_visits = conn.execute(
+        'SELECT COUNT(*) FROM link_tracking WHERE DATE(visit_date) = ?', 
+        (today,)
+    ).fetchone()[0]
+    
+    # معدل التحويل (نسبة الزيارات التي أدت إلى تفاعل)
+    total_interactions = conn.execute('SELECT COUNT(*) FROM user_responses').fetchone()[0]
+    conversion_rate = (total_interactions / total_visits * 100) if total_visits > 0 else 0
+    
+    conn.close()
+    
+    return jsonify({
+        'total_visits': total_visits,
+        'unique_visitors': unique_visitors,
+        'today_visits': today_visits,
+        'conversion_rate': round(conversion_rate, 1)
+    })
+
+@app.route('/api/link-tracking/visits')
+def get_recent_visits():
+    """الحصول على آخر الزيارات"""
+    conn = get_db_connection()
+    visits = conn.execute('''
+        SELECT lt.*, c.name as campaign_name 
+        FROM link_tracking lt
+        LEFT JOIN campaigns c ON lt.campaign_id = c.id
+        ORDER BY lt.visit_date DESC 
+        LIMIT 20
+    ''').fetchall()
+
+    result = [dict(visit) for visit in visits]
+    conn.close()
+    return jsonify(result)
+
+@app.route('/api/link-tracking/campaign/<int:campaign_id>')
+def get_campaign_visits(campaign_id):
+    """الحصول على زيارات حملة محددة"""
+    conn = get_db_connection()
+    visits = conn.execute('''
+        SELECT * FROM link_tracking 
+        WHERE campaign_id = ? 
+        ORDER BY visit_date DESC
+    ''', (campaign_id,)).fetchall()
+
+    result = [dict(visit) for visit in visits]
+    conn.close()
+    return jsonify(result)
+
 if __name__ == '__main__':
     # الحصول على الـ IP المحلي لعرضه للمستخدم
     try:
@@ -2430,13 +2771,16 @@ if __name__ == '__main__':
     print("📍 للوصول من أجهزة أخرى: http://{}:5000".format(local_ip))
     print("📊 لوحة التحكم: http://localhost:5000/dashboard")
     print("🎓 التدريب: http://localhost:5000/training")
+    print("📈 تتبع الزيارات: متاح الآن في لوحة التحكم")
     print("🎣 محاكاة التصيد: استخدم لوحة التحكم لاختبار الحملات")
     print("=" * 50)
     print("🆕 المميزات الجديدة:")
-    print("✅ رسالة توعية مباشرة 'لقد وقعت في الفخ'")
-    print("✅ توجيهات حماية واضحة")
-    print("✅ نقاط توعوية مبسطة")
-    print("✅ واجهة مستخدم محسنة")
+    print("✅ نظام تتبع الزيارات الكامل")
+    print("✅ تبويب جديد لتتبع الروابط")
+    print("✅ إحصائيات مفصلة عن الزيارات")
+    print("✅ تتبع الزوار الفريدين")
+    print("✅ معدلات التحويل")
+    print("✅ إنشاء روابط تتبع بسهولة")
 
     # فتح المتصفح تلقائياً
     def open_browser():
