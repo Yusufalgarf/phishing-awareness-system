@@ -259,7 +259,7 @@ def home():
             </div>
 
             <div class="footer">
-                <p>نظام التوعية بالتصيد - الجامعة © 2024</p>
+                <p>نظام التوعية بالتصيد</p>
             </div>
         </div>
 
@@ -2496,41 +2496,6 @@ def api_users():
             conn.close()
             return jsonify({'error': str(e)}), 400
 
-@app.route('/api/campaigns', methods=['GET', 'POST'])
-def api_campaigns():
-    """إدارة الحملات"""
-    conn = get_db_connection()
-
-    if request.method == 'GET':
-        campaigns = conn.execute('SELECT * FROM campaigns WHERE is_active = 1').fetchall()
-        result = [dict(campaign) for campaign in campaigns]
-        conn.close()
-        return jsonify(result)
-
-    elif request.method == 'POST':
-        data = request.get_json()
-        try:
-            conn.execute(
-                'INSERT INTO campaigns (name, description, phishing_type, difficulty_level, email_subject, email_content) VALUES (?, ?, ?, ?, ?, ?)',
-                (data['name'], data.get('description', ''), data['phishing_type'], data.get('difficulty_level', 'medium'), data['email_subject'], data['email_content'])
-            )
-            conn.commit()
-            conn.close()
-            return jsonify({'message': 'تم إنشاء الحملة بنجاح'})
-        except Exception as e:
-            conn.close()
-            return jsonify({'error': str(e)}), 400
-
-@app.route('/api/send-campaign/<int:campaign_id>', methods=['POST'])
-def send_campaign(campaign_id):
-    """إرسال حملة"""
-    conn = get_db_connection()
-
-    # جلب بيانات الحملة
-    campaign = conn.execute('SELECT * FROM campaigns WHERE id = ?', (campaign_id,)).fetchone()
-    if not campaign:
-        conn.close()
-        return jsonify({'error': 'الحملة غير موجودة'}), 404
 
     # جلب المستخدمين
     users = conn.execute('SELECT * FROM users WHERE is_active = 1').fetchall()
