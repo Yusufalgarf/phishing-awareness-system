@@ -513,7 +513,135 @@ def dashboard():
             </section>
 
             <!-- إدارة الحملات -->
-           
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h3>📧 إدارة الحملات التدريبية</h3>
+                    <button class="btn btn-primary" onclick="showAddCampaignForm()">إنشاء حملة</button>
+                </div>
+
+                <div class="section-content">
+                    <div class="form-container" id="addCampaignForm" style="display: none;">
+                        <form id="campaignForm" class="form">
+                            <div class="form-group">
+                                <label for="campaignName">اسم الحملة *</label>
+                                <input type="text" id="campaignName" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="campaignDescription">وصف الحملة</label>
+                                <textarea id="campaignDescription" rows="3"></textarea>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="phishingType">نوع التصيد</label>
+                                    <select id="phishingType">
+                                        <option value="email">بريد إلكتروني</option>
+                                        <option value="sms">رسالة نصية</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="difficultyLevel">مستوى الصعوبة</label>
+                                    <select id="difficultyLevel">
+                                        <option value="easy">سهل</option>
+                                        <option value="medium">متوسط</option>
+                                        <option value="hard">صعب</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="emailSubject">موضوع البريد الإلكتروني *</label>
+                                <input type="text" id="emailSubject" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="emailContent">محتويات البريد الإلكتروني *</label>
+                                <textarea id="emailContent" rows="6" required></textarea>
+                                <small>استخدم {tracking_url} كعنصر نائب لرابط التتبع</small>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">إنشاء الحملة</button>
+                                <button type="button" class="btn btn-secondary" onclick="hideAddCampaignForm()">إلغاء</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="campaigns-grid" id="campaignsGrid">
+                        <!-- سيتم ملؤها بالبيانات -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- قسم الوصول الخارجي -->
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h3>🌐 إدارة الوصول الخارجي</h3>
+                    <button class="btn btn-primary" onclick="showCreateAccessForm()">إنشاء رابط وصول</button>
+                </div>
+
+                <div class="section-content">
+                    <div class="form-container" id="createAccessForm" style="display: none;">
+                        <form id="accessForm" class="form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="accessUser">المستخدم (اختياري)</label>
+                                    <select id="accessUser">
+                                        <option value="">اختيار مستخدم</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="accessCampaign">الحملة (اختياري)</label>
+                                    <select id="accessCampaign">
+                                        <option value="">اختيار حملة</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="validDays">مدة الصلاحية (أيام)</label>
+                                    <input type="number" id="validDays" value="30" min="1" max="365">
+                                </div>
+                                <div class="form-group">
+                                    <label for="maxUses">الحد الأقصى للاستخدام</label>
+                                    <input type="number" id="maxUses" value="1" min="1" max="100">
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">إنشاء الرابط</button>
+                                <button type="button" class="btn btn-secondary" onclick="hideCreateAccessForm()">إلغاء</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div id="accessResult" style="display: none;" class="form">
+                        <h4>✅ تم إنشاء رابط الوصول</h4>
+                        <div class="form-group">
+                            <label>رابط الوصول:</label>
+                            <input type="text" id="generatedLink" readonly style="background: #f8f9fa;">
+                            <button class="btn" onclick="copyLink()" style="margin-top: 10px;">نسخ الرابط</button>
+                        </div>
+                        <div class="form-group">
+                            <label>معلومات الرابط:</label>
+                            <div id="linkInfo" style="background: #f8f9fa; padding: 10px; border-radius: 5px;"></div>
+                        </div>
+                    </div>
+
+                    <div class="table-container">
+                        <h4>روابط الوصول النشطة</h4>
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>رمز الوصول</th>
+                                    <th>الحملة</th>
+                                    <th>تاريخ الانتهاء</th>
+                                    <th>عدد الاستخدامات</th>
+                                    <th>الحالة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accessTableBody">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
         </main>
 
         <script>
